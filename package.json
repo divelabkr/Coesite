@@ -1,0 +1,18 @@
+{
+  "name": "coesite",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.4",
+  "scripts": {
+    "dev": "pnpm --filter @coesite/api dev",
+    "build": "pnpm -r build",
+    "test": "vitest run",
+    "scan": "rg -n --hidden --glob '!node_modules' --glob '!dist' \"TODO|FIXME\" .",
+    "lint": "pnpm --dir packages/types exec tsc --noEmit -p tsconfig.json && pnpm --dir packages/utils exec tsc --noEmit -p tsconfig.json && pnpm --dir packages/api exec tsc --noEmit -p tsconfig.json && pnpm --dir packages/sdk exec tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "20.12.12",
+    "typescript": "5.4.5",
+    "vitest": "1.6.1"
+  }
+}
