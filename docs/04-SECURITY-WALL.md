@@ -378,11 +378,12 @@ bash scripts/scan-principles.sh
 ```bash
 # 추가 정규식 패턴 (security-wall.sh 확장)
 REGEX_PATTERNS=(
-  "R[-_]?12"
-  "R[-_]?Twelve"
-  "Sapph?ire"
-  "Lapis[-_ ]?Lazuli"
+  "[RＲ][[:space:]_​‌‍-]*[1１][[:space:]_​‌‍-]*[2２]"
+  "[RＲ][[:space:]_​‌‍-]*Twelve"
+  "S[[:space:]_​‌‍-]*apph?[[:space:]_​‌‍-]*ire"
+  "Lapis[[:space:]_​‌‍-]*Lazuli"
   "사파이어"
+  "라피스[[:space:]_​‌‍-]*라줄리"
   "라피스"
 )
 ```

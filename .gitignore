@@ -1,6 +1,7 @@
 node_modules/
 dist/
 *.log
+!tasks/security-wall.log
 **/.env
 **/.env.local
 **/.env.*

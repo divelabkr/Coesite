@@ -103,3 +103,4 @@ DevContainer는 P0.4 또는 P0.5에서 별도 task로 처리한다.
 WORM 관리자 계정은 P0.3 Prisma 스키마 작업 시 별도 task로 처리한다.
 Config 추상화, Redis ACL 또는 *_FILE secrets, tmpfs/resource limit, 운영 container/volume namespace는 후속 phase에서 별도 task로 처리한다.
 Docker 설치 후 `docker compose config`, `docker compose up`, `psql`, `redis ping`, `docker compose down -v` 재검증은 별도 호출로 처리한다.
+GitHub Actions SHA pinning은 Dependabot 또는 Renovate 관리 체계 확정 후 별도 task로 처리한다. 현재는 `actions/*@v4`를 유지한다.

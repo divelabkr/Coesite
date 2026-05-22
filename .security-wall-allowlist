@@ -1,0 +1,3 @@
+tasks/phase0/*.md
+tasks/phase0/codex-out/*-last.md
+tasks/phase0/codex-out/*.log

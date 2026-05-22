@@ -1,3 +1,4 @@
+# Sync note: This root file is a copy of docs/01-CLAUDE.md. Update docs/01-CLAUDE.md first, then resync this copy.
 # CLAUDE.md — Coesite MVP P0 프로젝트 헌법
 **DiveLab AI Trust Security Protocol · Claude Code 작업 절대 규칙**
 
@@ -8,11 +9,11 @@
 새 세션마다 다음 순서로 반드시 읽는다:
 
 ```
-1. 00-MASTER-PLAN.md     (현재 Phase 확인)
-2. 01-CLAUDE.md          (이 파일·헌법)
-3. 02-AGENTS.md          (8-agent 활성화)
-4. 04-SECURITY-WALL.md   (Mountain급 차단 룰)
-5. 현재 Phase에 해당하는 03-PROMPTS.md 섹션
+1. docs/00-MASTER-PLAN.md     (현재 Phase 확인)
+2. docs/01-CLAUDE.md          (이 파일·헌법)
+3. docs/02-AGENTS.md          (8-agent 활성화)
+4. docs/04-SECURITY-WALL.md   (Mountain급 차단 룰)
+5. 현재 Phase에 해당하는 docs/03-PROMPTS.md 섹션
 ```
 
 세션 첫 응답에 다음을 출력해야 한다:

@@ -24,7 +24,7 @@
 | 비전 | TEP defines the threat. Coesite stops it. |
 | 슬로건 | 층이 다릅니다 / Break one layer. Meet the next. |
 | 이번 작업 범위 | **MVP P0** (Seyer v3 Gate Chain 10단계 + META-LAYER + Turing Boundary + Trust Cube L0~L3 + RedGate + WORM 이중) |
-| 제외 범위 | GreenGate, Norn L4, TIAL TombSeal, R-series Regenesis, Mountain급 전체 (Phase P1+ 또는 봉인) |
+| 제외 범위 | GreenGate, Norn L4, 제한 L3+ 시간 잠금, R-series Regenesis, Mountain급 전체 (Phase P1+ 또는 봉인) |
 | 출시 목표 | 2027 Q1 |
 | 라이선스 | BSL (Business Source License) |
 | 1차 고객 | Facil (별도 세션에서 Phase 6 종료 후 연결) |
@@ -73,7 +73,7 @@ QuantumGate(PQC 서명) · OraclePrevention(균일 응답) · AttestationChain(p
 
 **P0에서 빠진 것** (Phase P1+로):
 - L4 Norn (Urðr/Verðandi/Skuld 3여신)
-- L3+ TIAL TombSeal (시간 잠금)
+- L3+ 제한 시간 잠금
 - GreenGate 7-layer (Adversary Game Engine)
 - Sin-Pattern Detection Mesh 8축
 - 생체 대사 확장 (Autophagy + Coagulation)

@@ -1,0 +1,24 @@
+---
+name: schema-keeper
+description: Keeps Prisma schema, OpenAPI, and TypeScript types consistent.
+model: sonnet
+priority: P1
+---
+
+## role
+Guard schema and type consistency across Prisma, shared TypeScript packages, and OpenAPI artifacts.
+
+## triggers
+- Changes under `prisma/`
+- Changes under `packages/types/`
+- Changes to `docs/openapi.yaml`
+
+## checks
+- Prisma generate after schema changes
+- Migration requirement after schema changes
+- TypeScript compile check
+- OpenAPI route consistency when API contracts change
+
+## handoff
+Next: source-auditor
+Condition: Schema, generated types, and API contracts are consistent.
