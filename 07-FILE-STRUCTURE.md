@@ -503,7 +503,7 @@ PORT=3000
 LOG_LEVEL=info
 
 # ── Database ────────────────────────────
-DATABASE_URL=postgresql://coesite:coesite@localhost:5432/coesite
+DATABASE_URL=<local-postgres-url>
 
 # ── Redis ───────────────────────────────
 REDIS_URL=redis://localhost:6379

@@ -214,7 +214,7 @@ role: |
   04-SECURITY-WALL.md 룰 강제.
 
 checks:
-  - Mountain 키워드 스캔 (R-12, Sapphire, Lapis 등)
+  - Mountain 키워드 스캔 (04-SECURITY-WALL.md Tier 1 목록 및 변형)
   - 시크릿 패턴 스캔 (AWS_, GCP_, API_KEY, PRIVATE_KEY)
   - SQL Injection 패턴 스캔
   - XSS 패턴 스캔
@@ -223,9 +223,8 @@ checks:
 
 forbidden_keywords:
   mountain:
-    - R-12, Sapphire, Genotype-Phenotype, Genesis Pool
-    - Lapis Lazuli, Constitutive Binding, 5-layer seal
-    - Stone Collector, IP Holdco
+    - 04-SECURITY-WALL.md Tier 1 목록 전체
+    - 04-SECURITY-WALL.md §8 변형 전체
 
 on_violation: 
   action: "전체 작업 중단 + 사용자 즉시 보고"

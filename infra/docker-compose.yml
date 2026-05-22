@@ -1,0 +1,129 @@
+services:
+  postgres:
+    # Digest reference checked: 2026-05-22
+    # Source: https://hub.docker.com/v2/repositories/library/postgres/tags/16-alpine
+    # Refresh every 3 months or after relevant CVEs: docker pull postgres:16-alpine, inspect RepoDigests, update digest.
+    # Recommended scan: trivy image postgres:16-alpine
+    image: postgres:16-alpine@sha256:16bc17c64a573ef34162af9298258d1aec548232985b33ed7b1eac33ba35c229
+    container_name: coesite-postgres
+    restart: on-failure:5
+    user: "70:70"
+    env_file:
+      - ./.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --auth-host=scram-sha-256 --auth-local=scram-sha-256"
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+    volumes:
+      - coesite-postgres-data:/var/lib/postgresql/data
+    read_only: false
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+      - SYS_PTRACE
+      - SYS_MODULE
+      - AUDIT_WRITE
+      - DAC_READ_SEARCH
+      - MAC_OVERRIDE
+      - MAC_ADMIN
+    # P0.3 Prisma 시점에 앱용 최소권한 계정 read/write 검증을 추가한다.
+    healthcheck:
+      test: ["CMD-SHELL", "PGPASSWORD=\"$${POSTGRES_PASSWORD}\" psql -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\" -c \"SELECT 1\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  redis:
+    # Digest reference checked: 2026-05-22
+    # Source: https://hub.docker.com/v2/repositories/library/redis/tags/7-alpine
+    # Refresh every 3 months or after relevant CVEs: docker pull redis:7-alpine, inspect RepoDigests, update digest.
+    # Recommended scan: trivy image redis:7-alpine
+    image: redis:7-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
+    container_name: coesite-redis
+    restart: on-failure:5
+    user: "999:999"
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    env_file:
+      - ./.env
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
+    volumes:
+      - coesite-redis-data:/data
+    read_only: false
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+      - SYS_PTRACE
+      - SYS_MODULE
+      - AUDIT_WRITE
+      - DAC_READ_SEARCH
+      - MAC_OVERRIDE
+      - MAC_ADMIN
+    # P0.3 Prisma 시점에 앱용 최소권한 계정 read/write 검증을 추가한다.
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+  # NOTE: P0.3+ api 서비스 추가 시
+  #   DB 서비스는 기본적으로 internal Docker network에만 노출한다.
+  #   depends_on:
+  #     postgres: { condition: service_healthy }
+  #     redis: { condition: service_healthy }
+  #   최소권한 앱 계정 read/write healthcheck를 별도 추가한다.
+
+  postgres-debug:
+    # Tag reference checked: 2026-05-22
+    # Source: https://hub.docker.com/r/alpine/socat/tags
+    # Refresh every 3 months or after relevant CVEs: docker pull alpine/socat:1.8.0.3, inspect RepoDigests, update tag/digest.
+    # Recommended scan: trivy image alpine/socat:1.8.0.3
+    image: alpine/socat:1.8.0.3
+    profiles: ["debug"]
+    restart: on-failure:5
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["TCP-LISTEN:5432,fork,reuseaddr", "TCP:postgres:5432"]
+    ports:
+      - "127.0.0.1:5432:5432"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  redis-debug:
+    # Tag reference checked: 2026-05-22
+    # Source: https://hub.docker.com/r/alpine/socat/tags
+    # Refresh every 3 months or after relevant CVEs: docker pull alpine/socat:1.8.0.3, inspect RepoDigests, update tag/digest.
+    # Recommended scan: trivy image alpine/socat:1.8.0.3
+    image: alpine/socat:1.8.0.3
+    profiles: ["debug"]
+    restart: on-failure:5
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["TCP-LISTEN:6379,fork,reuseaddr", "TCP:redis:6379"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  coesite-postgres-data:
+    name: coesite-postgres-data
+  coesite-redis-data:
+    name: coesite-redis-data

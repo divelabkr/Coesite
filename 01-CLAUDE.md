@@ -140,10 +140,8 @@ WORM:        Postgres 트리거 + S3 Object Lock COMPLIANCE 7년 (이중)
 
 ```
 금지 키워드 (즉시 차단):
-  R-12, Sapphire, Genotype-Phenotype, Genesis Pool, ZKBP verification
-  Lapis Lazuli, Constitutive Binding, 5-layer seal, Dormant Genome
-  Mountain tier, IP Holdco, Stone Collector
-  Shamir 5-of-7, CEO-irreplaceable
+  04-SECURITY-WALL.md §1 Tier 1 목록 전체
+  04-SECURITY-WALL.md §8 변형 전체
 ```
 
 탐지 시:
@@ -284,7 +282,7 @@ Claude Code (검증자):
 | F8 | 응답 시간 random 또는 가변 size | P8 위반 |
 | F9 | 신뢰도 baseline 갱신 누락 | P9 위반 |
 | F10 | 단일 엔진 판정만으로 ALLOW 반환 | P10 위반 |
-| F11 | Mountain급 키워드 사용 (R-12·Lapis 등) | 봉인 위반 |
+| F11 | Mountain급 키워드 사용 (Security Wall Tier 1 목록 및 변형) | 봉인 위반 |
 | F12 | API 키·시크릿 하드코딩 | 보안 위반 |
 | F13 | 게이트 통과 없이 다음 Phase 진입 | 흐름 위반 |
 | F14 | "이 정도면 됐다"식 검증 생략 | 완료 기준 위반 |

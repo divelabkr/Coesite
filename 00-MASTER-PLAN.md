@@ -188,7 +188,7 @@ Phase 6 (통합 + SDK)
 | D1 | SIREN 3.0 P0 포함 (디셉션·허니팟 풀스택) | 차별화 핵심·특허 S-8~S-11 동시 검증 |
 | D2 | Facil 파일럿 = Coesite 완료 후 별도 세션 | 컨텍스트 분리·Coesite 순결성 보호 |
 | D3 | WORM 이중 (Postgres 트리거 + S3 Object Lock 7년) | 단일 장애점 제거·법적 증거력 최대화 |
-| D4 | Mountain급 (R-12·Lapis·5층 봉인) 완전 제외 | 메모리 강제 룰·노출 위험 차단 |
+| D4 | Mountain급 Tier 1 목록 및 변형 완전 제외 | 메모리 강제 룰·노출 위험 차단 |
 | D5 | 8-agent harness + scan-principles.sh + AUTO-DEBUG 7-step 강제 | 기존 자산 활용·일관성 |
 
 ---
