@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { OraclePreventionService } from "../../common/oracle-prevention";
 import { TokenNormMiddleware, type TokenNormRequest } from "./token-norm.middleware";
 import { TokenNormModule } from "./token-norm.module";
 import { TokenNormService } from "./token-norm.service";
@@ -28,14 +29,19 @@ function createResponse(): CapturedResponse {
 }
 
 describe("TokenNormMiddleware", () => {
+  function createMiddleware(minimumElapsedMs = 0): TokenNormMiddleware {
+    return new TokenNormMiddleware(
+      new TokenNormService(),
+      new OraclePreventionService({ minimumElapsedMs }),
+    );
+  }
+
   afterEach(() => {
     vi.useRealTimers();
   });
 
   it("calls next for unchanged request fields", async () => {
-    const middleware = new TokenNormMiddleware(new TokenNormService(), {
-      minimumElapsedMs: 0,
-    });
+    const middleware = createMiddleware();
     const req: TokenNormRequest = {
       body: { token: "plain" },
       query: { page: "1" },
@@ -52,9 +58,7 @@ describe("TokenNormMiddleware", () => {
   });
 
   it("normalizes request fields before passing unchanged requests onward", async () => {
-    const middleware = new TokenNormMiddleware(new TokenNormService(), {
-      minimumElapsedMs: 0,
-    });
+    const middleware = createMiddleware();
     const req: TokenNormRequest = {
       body: { count: 1 },
       query: { tags: ["a", "b"] },
@@ -72,9 +76,7 @@ describe("TokenNormMiddleware", () => {
   });
 
   it("rejects body transformations with a uniform response", async () => {
-    const middleware = new TokenNormMiddleware(new TokenNormService(), {
-      minimumElapsedMs: 0,
-    });
+    const middleware = createMiddleware();
     const req: TokenNormRequest = {
       body: { token: "pay\u200Bload" },
       query: {},
@@ -87,16 +89,16 @@ describe("TokenNormMiddleware", () => {
 
     expect(next).not.toHaveBeenCalled();
     expect(res.statusCode).toBe(403);
-    expect(res.body).toBe('{"error":"request_rejected"}');
+    expect(Buffer.byteLength(res.body ?? "")).toBe(512);
     expect(res.headers["content-type"]).toBe("application/json; charset=utf-8");
     expect(res.headers["cache-control"]).toBe("no-store");
-    expect(res.headers["content-length"]).toBe("28");
+    expect(res.headers["content-encoding"]).toBe("identity");
+    expect(res.headers["content-length"]).toBe("512");
+    expect(res.headers["x-coesite-eml"]).toMatch(/^[0-9a-f]{32}$/u);
   });
 
   it("stores metadata for rejected requests", async () => {
-    const middleware = new TokenNormMiddleware(new TokenNormService(), {
-      minimumElapsedMs: 0,
-    });
+    const middleware = createMiddleware();
     const req: TokenNormRequest = {
       body: {},
       query: { q: "%252Fadmin" },
@@ -116,9 +118,7 @@ describe("TokenNormMiddleware", () => {
   });
 
   it("rejects header transformations", async () => {
-    const middleware = new TokenNormMiddleware(new TokenNormService(), {
-      minimumElapsedMs: 0,
-    });
+    const middleware = createMiddleware();
     const req: TokenNormRequest = {
       body: {},
       query: {},
@@ -136,9 +136,7 @@ describe("TokenNormMiddleware", () => {
 
   it("pads rejected requests to the configured minimum elapsed time", async () => {
     vi.useFakeTimers();
-    const middleware = new TokenNormMiddleware(new TokenNormService(), {
-      minimumElapsedMs: 1000,
-    });
+    const middleware = createMiddleware(1000);
     const req: TokenNormRequest = {
       body: { token: "p\u0430yload" },
       query: {},

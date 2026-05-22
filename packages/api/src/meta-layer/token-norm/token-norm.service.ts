@@ -10,6 +10,10 @@ const ZERO_WIDTH_PATTERN = /[\u200B\u200C\u200D\uFEFF]/gu;
 const BIDI_CONTROL_PATTERN = /[\u202A-\u202E\u2066-\u2069]/gu;
 const MAX_URL_DECODE_PASSES = 2;
 const MAX_BASE64_DECODED_LENGTH = 16_384;
+const MAX_FIXED_POINT_PASSES = 5;
+const MAX_RECURSION_DEPTH = 3;
+const MAX_STRING_INPUT_BYTES = 65_536;
+const MAX_EXPANSION_FACTOR = 256;
 
 const HOMOGLYPH_MAP = new Map<string, string>([
   ["\u0410", "A"],
@@ -43,7 +47,7 @@ const HOMOGLYPH_MAP = new Map<string, string>([
 export class TokenNormService {
   normalize<T>(input: T, rootPath = "$"): TokenNormResult<T> {
     const findings: TokenNormFinding[] = [];
-    const value = this.normalizeValue(input, rootPath, findings) as T;
+    const value = this.normalizeValue(input, rootPath, findings, 0) as T;
     return { value, findings };
   }
 
@@ -51,14 +55,26 @@ export class TokenNormService {
     value: unknown,
     path: string,
     findings: TokenNormFinding[],
+    depth: number,
   ): unknown {
+    if (depth > MAX_RECURSION_DEPTH) {
+      findings.push({
+        path,
+        reason: "max_depth_exceeded",
+        original: "[depth-limit]",
+        normalized: "[blocked]",
+        metadata: { depth, maxDepth: MAX_RECURSION_DEPTH },
+      });
+      return value;
+    }
+
     if (typeof value === "string") {
       return this.normalizeString(value, path, findings);
     }
 
     if (Array.isArray(value)) {
       return value.map((item, index) =>
-        this.normalizeValue(item, `${path}[${index}]`, findings),
+        this.normalizeValue(item, `${path}[${index}]`, findings, depth + 1),
       );
     }
 
@@ -74,6 +90,7 @@ export class TokenNormService {
           item,
           `${path}.${normalizedKey}`,
           findings,
+          depth + 1,
         );
       }
       return normalized;
@@ -83,6 +100,67 @@ export class TokenNormService {
   }
 
   private normalizeString(
+    input: string,
+    path: string,
+    findings: TokenNormFinding[],
+  ): string {
+    const originalByteLength = Buffer.byteLength(input);
+    if (originalByteLength > MAX_STRING_INPUT_BYTES) {
+      findings.push({
+        path,
+        reason: "base64_expansion",
+        original: input,
+        normalized: input,
+        metadata: {
+          byteLength: originalByteLength,
+          maxByteLength: MAX_STRING_INPUT_BYTES,
+        },
+      });
+      return input;
+    }
+
+    let current = input;
+
+    for (let pass = 1; pass <= MAX_FIXED_POINT_PASSES; pass += 1) {
+      const beforePass = current;
+      current = this.normalizeStringOnce(current, path, findings);
+
+      if (Buffer.byteLength(current) > originalByteLength * MAX_EXPANSION_FACTOR) {
+        findings.push({
+          path,
+          reason: "base64_expansion",
+          original: beforePass,
+          normalized: current,
+          metadata: {
+            pass,
+            originalByteLength,
+            normalizedByteLength: Buffer.byteLength(current),
+            maxExpansionFactor: MAX_EXPANSION_FACTOR,
+          },
+        });
+        return current;
+      }
+
+      if (current === beforePass) {
+        return current;
+      }
+    }
+
+    const probeFindings: TokenNormFinding[] = [];
+    const next = this.normalizeStringOnce(current, path, probeFindings);
+    if (next !== current) {
+      findings.push({
+        path,
+        reason: "convergence_failed",
+        original: current,
+        normalized: next,
+        metadata: { maxPasses: MAX_FIXED_POINT_PASSES },
+      });
+    }
+    return current;
+  }
+
+  private normalizeStringOnce(
     input: string,
     path: string,
     findings: TokenNormFinding[],
@@ -118,6 +196,15 @@ export class TokenNormService {
     );
 
     const urlResult = this.tryUrlDecode(current);
+    if (urlResult.malformed) {
+      findings.push({
+        path,
+        reason: "malformed_url",
+        original: current,
+        normalized: current,
+      });
+      return current;
+    }
     if (urlResult.value !== current) {
       current = this.applyTransform(
         current,
@@ -163,13 +250,24 @@ export class TokenNormService {
     return output;
   }
 
-  private tryUrlDecode(input: string): { value: string; reason: TokenNormReason } {
+  private tryUrlDecode(input: string): {
+    value: string;
+    reason: TokenNormReason;
+    malformed: boolean;
+  } {
     let current = input;
     let passes = 0;
 
-    while (passes < MAX_URL_DECODE_PASSES && this.hasUrlEncoding(current)) {
+    while (passes < MAX_URL_DECODE_PASSES && current.includes("%")) {
       const decoded = this.decodeUriComponentSafe(current);
-      if (decoded === null || decoded === current) {
+      if (decoded === null) {
+        return {
+          value: current,
+          reason: "malformed_url",
+          malformed: true,
+        };
+      }
+      if (decoded === current) {
         break;
       }
       current = decoded;
@@ -179,6 +277,7 @@ export class TokenNormService {
     return {
       value: current,
       reason: passes > 1 ? "double_url_decode" : "url_decode",
+      malformed: false,
     };
   }
 
@@ -209,10 +308,6 @@ export class TokenNormService {
     }
 
     return decodedText;
-  }
-
-  private hasUrlEncoding(input: string): boolean {
-    return /%[0-9A-Fa-f]{2}/u.test(input);
   }
 
   private decodeUriComponentSafe(input: string): string | null {

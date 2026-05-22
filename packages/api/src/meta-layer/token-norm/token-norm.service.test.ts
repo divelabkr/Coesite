@@ -110,11 +110,11 @@ describe("TokenNormService", () => {
     expect(result.findings[0]?.reason).toBe("double_url_decode");
   });
 
-  it("does not throw on malformed URL encoding", () => {
+  it("fails closed on malformed URL encoding", () => {
     const result = service.normalize("%E0%A4%A");
 
     expect(result.value).toBe("%E0%A4%A");
-    expect(result.findings).toHaveLength(0);
+    expect(result.findings[0]?.reason).toBe("malformed_url");
   });
 
   it("decodes base64 payloads", () => {
@@ -171,5 +171,55 @@ describe("TokenNormService", () => {
 
     expect(result.value).toBe(holder);
     expect(result.findings).toHaveLength(0);
+  });
+
+  it.each([
+    ["URL to Cyrillic", "%D1%80ay"],
+    ["base64 to URL", "JTJGcGF5bG9hZA=="],
+    ["double base64", "Y0dGNWJHOWhaQT09"],
+    ["NFKC to bidi", "%EF%BC%9Cscript%EF%BC%9E%E2%80%AE"],
+    ["double URL to zero width", "%2570ay%25E2%2580%258Bload"],
+    ["URL to base64", "cGF5JUUyJTgwJThCbG9hZA=="],
+    ["base64 to homoglyph", "cNGAeQ=="],
+    ["mixed full width", "%EF%BC%A1%EF%BC%A2%EF%BC%A3"],
+    ["bidi inside URL", "abc%E2%80%AEdef"],
+    ["zero width inside base64", "cGF54oCLbG9hZA=="],
+    ["double URL path", "%252Fadmin%252Fpanel"],
+    ["URL encoded base64 payload", "Y0dGNUl1T0tnbVhPa0E9PQ%3D%3D"],
+    ["base64 to Cyrillic", "0LBhZA=="],
+    ["NFKC key marker", "%EF%BC%8Fadmin"],
+    ["URL lower hex", "%2fadmin"],
+    ["URL mixed hex", "%2Fadmin%2fpanel"],
+    ["nested encoded percent", "%2525"],
+    ["encoded bidi wrapper", "%E2%81%A6abc%E2%81%A9"],
+    ["encoded byte order mark", "%EF%BB%BFpayload"],
+    ["base64 url alphabet", "cGF5bG9hZC0_"],
+  ])("detects fixed-point attack vector: %s", (_name, input) => {
+    const result = service.normalize(input);
+
+    expect(result.findings.length).toBeGreaterThan(0);
+  });
+
+  it.each(["%252Fadmin%ZZ", "%2", "%"])(
+    "fails closed on malformed URL variant %s",
+    (input) => {
+      const result = service.normalize(input);
+
+      expect(result.findings[0]?.reason).toBe("malformed_url");
+    },
+  );
+
+  it("caps recursive normalization depth", () => {
+    const result = service.normalize({
+      a: { b: { c: { d: "pay\u200Bload" } } },
+    });
+
+    expect(result.findings[0]?.reason).toBe("max_depth_exceeded");
+  });
+
+  it("fails closed when string input exceeds the DoS cap", () => {
+    const result = service.normalize("a".repeat(65_537));
+
+    expect(result.findings[0]?.reason).toBe("base64_expansion");
   });
 });

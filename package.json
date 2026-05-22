@@ -7,6 +7,7 @@
     "dev": "pnpm --filter @coesite/api dev",
     "build": "pnpm -r build",
     "test": "vitest run",
+    "test:e2e": "vitest run packages/api/test/e2e",
     "db:up": "bash infra/preflight.sh && docker compose --env-file ./infra/.env -f ./infra/docker-compose.yml up -d",
     "db:up:runtime": "pnpm db:up",
     "db:down": "docker compose --env-file ./infra/.env -f ./infra/docker-compose.yml down",

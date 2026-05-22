@@ -1,16 +1,12 @@
-import { Injectable, Optional, type NestMiddleware } from "@nestjs/common";
+import { Inject, Injectable, type NestMiddleware } from "@nestjs/common";
 
+import { OraclePreventionService } from "../../common/oracle-prevention";
 import { TokenNormService } from "./token-norm.service";
 import type {
   TokenNormFinding,
   TokenNormHttpResponse,
   TokenNormMetadata,
-  TokenNormMiddlewareOptions,
 } from "./types";
-
-const UNIFORM_STATUS = 403;
-const UNIFORM_BODY = JSON.stringify({ error: "request_rejected" });
-const DEFAULT_MINIMUM_ELAPSED_MS = 200;
 
 export interface TokenNormRequest {
   body?: unknown;
@@ -21,16 +17,12 @@ export interface TokenNormRequest {
 
 @Injectable()
 export class TokenNormMiddleware implements NestMiddleware {
-  private readonly minimumElapsedMs: number;
-
   constructor(
+    @Inject(TokenNormService)
     private readonly tokenNormService: TokenNormService,
-    @Optional()
-    options: TokenNormMiddlewareOptions = {},
-  ) {
-    this.minimumElapsedMs =
-      options.minimumElapsedMs ?? DEFAULT_MINIMUM_ELAPSED_MS;
-  }
+    @Inject(OraclePreventionService)
+    private readonly oraclePrevention: OraclePreventionService,
+  ) {}
 
   async use(
     req: TokenNormRequest,
@@ -63,33 +55,29 @@ export class TokenNormMiddleware implements NestMiddleware {
     };
 
     if (allFindings.length > 0) {
-      await this.padElapsed(startedAt);
       req.tokenNormMetadata = {
         ...req.tokenNormMetadata,
         elapsedMs: this.elapsedSince(startedAt),
       };
-      this.writeUniformRejection(res);
+      console.error("token-norm rejection", {
+        findings: allFindings.map((finding) => ({
+          path: finding.path,
+          reason: finding.reason,
+          metadata: finding.metadata,
+        })),
+      });
+      await this.oraclePrevention.padAndReject(
+        res,
+        {
+          source: "token-norm",
+          tokenNormFinding: allFindings[0],
+        },
+        startedAt,
+      );
       return;
     }
 
     next();
-  }
-
-  private writeUniformRejection(res: TokenNormHttpResponse): void {
-    res.status(UNIFORM_STATUS);
-    res.setHeader("content-type", "application/json; charset=utf-8");
-    res.setHeader("cache-control", "no-store");
-    res.setHeader("content-length", Buffer.byteLength(UNIFORM_BODY).toString());
-    res.end(UNIFORM_BODY);
-  }
-
-  private async padElapsed(startedAt: number): Promise<void> {
-    const remainingMs = this.minimumElapsedMs - this.elapsedSince(startedAt);
-    if (remainingMs > 0) {
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, remainingMs);
-      });
-    }
   }
 
   private elapsedSince(startedAt: number): number {

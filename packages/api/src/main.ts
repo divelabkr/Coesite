@@ -7,6 +7,7 @@ const PORT = 3000;
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
+  app.getHttpAdapter().getInstance().disable("x-powered-by");
   await app.listen(PORT);
 }
 
