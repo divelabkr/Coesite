@@ -1,0 +1,159 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SessionStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+enum WormLogLevel {
+  INFO
+  WARN
+  ERROR
+  CRITICAL
+}
+
+model Agent {
+  id             String    @id @default(cuid())
+  name           String
+  trustScore     Float     @default(100)
+  baseline       Json
+  activeSessions Int       @default(0)
+  lastDecayAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  sessions Session[]
+
+  @@index([createdAt])
+  @@map("Agent")
+}
+
+model Session {
+  id              String        @id @default(cuid())
+  agentId         String
+  startedAt       DateTime
+  expiresAt       DateTime
+  budgetRemaining Int
+  status          SessionStatus
+  createdAt       DateTime      @default(now())
+
+  agent        Agent         @relation(fields: [agentId], references: [id])
+  proofBundles ProofBundle[]
+
+  @@index([agentId])
+  @@index([createdAt])
+  @@map("Session")
+}
+
+model Policy {
+  id        String   @id @default(cuid())
+  name      String
+  version   Int
+  allowList Json
+  signedBy  String
+  signedAt  DateTime
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("Policy")
+}
+
+/// WORM: UPDATE/DELETE/TRUNCATE forbidden by trigger
+model AuditLog {
+  id        String   @id @default(cuid())
+  agentId   String
+  action    String
+  hash      String   @unique(map: "audit_hash_unique")
+  prevHash  String
+  /// PII WARNING: Plain Json payload. Phase 1 이전에 envelope encryption 또는 redaction 정책 확정 필수.
+  /// 최소 필드: digest hash·timestamp·actorId. 평문 PII 저장 금지.
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@unique([agentId, prevHash], map: "audit_prev_unique")
+  @@index([agentId])
+  @@index([createdAt])
+  @@map("AuditLog")
+}
+
+/// WORM: UPDATE/DELETE/TRUNCATE forbidden by trigger
+model WormLog {
+  id        String       @id @default(cuid())
+  source    String
+  level     WormLogLevel
+  /// PII WARNING: Operational message only. Phase 1 이전에 redaction 정책 확정 필수.
+  /// 평문 PII 저장 금지. 필요한 경우 digest hash·timestamp·actorId 중심으로 별도 payload 설계를 확정한다.
+  message   String
+  hash      String       @unique(map: "worm_hash_unique")
+  prevHash  String
+  createdAt DateTime     @default(now())
+
+  @@unique([source, prevHash], map: "worm_prev_unique")
+  @@index([createdAt])
+  @@index([hash])
+  @@map("WormLog")
+}
+
+/// WORM: UPDATE/DELETE/TRUNCATE forbidden by trigger
+model AdminActionLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  /// PII WARNING: Plain Json payload. Phase 1 이전에 envelope encryption 또는 redaction 정책 확정 필수.
+  /// 최소 필드: digest hash·timestamp·actorId. 평문 PII 저장 금지.
+  payload   Json
+  hash      String   @unique(map: "admin_hash_unique")
+  prevHash  String
+  createdAt DateTime @default(now())
+
+  @@unique([adminId, prevHash], map: "admin_prev_unique")
+  @@index([createdAt])
+  @@index([hash])
+  @@map("AdminActionLog")
+}
+
+/// WORM: UPDATE/DELETE/TRUNCATE forbidden by trigger
+model DmsTriggerLog {
+  id          String   @id @default(cuid())
+  triggerType String
+  /// PII WARNING: Plain Json payload. Phase 1 이전에 envelope encryption 또는 redaction 정책 확정 필수.
+  /// 최소 필드: digest hash·timestamp·actorId. 평문 PII 저장 금지.
+  payload     Json
+  hash        String   @unique(map: "dms_hash_unique")
+  prevHash    String
+  createdAt   DateTime @default(now())
+
+  @@unique([triggerType, prevHash], map: "dms_prev_unique")
+  @@index([createdAt])
+  @@index([hash])
+  @@map("DmsTriggerLog")
+}
+
+/// WORM: UPDATE/DELETE/TRUNCATE forbidden by trigger
+model ProofBundle {
+  id         String   @id @default(cuid())
+  sessionId  String
+  contractId String
+  /// PII WARNING: Plain Json payload. Phase 1 이전에 envelope encryption 또는 redaction 정책 확정 필수.
+  /// 최소 필드: digest hash·timestamp·actorId. 평문 PII 저장 금지.
+  payload    Json
+  signature  String
+  hash       String   @unique(map: "proof_hash_unique")
+  prevHash   String
+  createdAt  DateTime @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id])
+
+  @@unique([sessionId, prevHash], map: "proof_prev_unique")
+  @@index([createdAt])
+  @@index([hash])
+  @@map("ProofBundle")
+}

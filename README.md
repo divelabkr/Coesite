@@ -63,6 +63,12 @@ openssl rand -hex 32
 
 프로덕션은 `.env` 파일 대신 secrets manager 또는 KMS를 사용한다.
 
+## Phase 1 진입 전 결정 필요
+
+WORM 계열 테이블의 `payload`에는 평문 PII를 저장하지 않는다. Phase 1 이전에 envelope encryption 또는 redaction 정책을 확정하고, 최소 필드는 digest hash, timestamp, actorId 중심으로 제한한다.
+
+`coesite_runtime` DB role의 비밀번호는 migration placeholder를 운영 값으로 쓰지 않는다. 실제 운영에서는 KMS 또는 `*_FILE` 기반 secret 주입 방식을 확정한 뒤 `RUNTIME_DATABASE_URL`을 앱 runtime 전용으로 분리한다.
+
 ## 종료와 volume 처리
 
 ```powershell
