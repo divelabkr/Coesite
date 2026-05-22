@@ -21,6 +21,11 @@ warn() {
   echo "[preflight] WARN: $*" >&2
 }
 
+fail_url_consistency() {
+  echo "[preflight] FAIL: URL consistency violation: $*" >&2
+  exit 3
+}
+
 env_value() {
   local file="$1"
   local key="$2"
@@ -53,6 +58,74 @@ validate_password() {
   local value
   value="$(env_value "$file" "$key")"
   [ -n "$value" ] || fail "$key is empty in $file"
+}
+
+database_url_parts() {
+  local url="$1"
+  local label="$2"
+  local rest authority path_query db hostport userinfo user host port
+
+  case "$url" in
+    postgresql://*|postgres://*) ;;
+    *) fail_url_consistency "$label must start with postgresql:// or postgres://" ;;
+  esac
+
+  rest="${url#*://}"
+  authority="${rest%%/*}"
+  if [ "$authority" = "$rest" ]; then
+    fail_url_consistency "$label is missing database path"
+  fi
+
+  path_query="${rest#*/}"
+  db="${path_query%%\?*}"
+  db="${db%%#*}"
+  [ -n "$db" ] || fail_url_consistency "$label is missing database name"
+
+  userinfo=""
+  user=""
+  hostport="$authority"
+  if [ "$authority" != "${authority#*@}" ]; then
+    userinfo="${authority%@*}"
+    user="${userinfo%%:*}"
+    hostport="${authority##*@}"
+  fi
+
+  if [ "$hostport" != "${hostport%:*}" ]; then
+    host="${hostport%:*}"
+    port="${hostport##*:}"
+  else
+    host="$hostport"
+    port=""
+  fi
+
+  [ -n "$host" ] || fail_url_consistency "$label is missing host"
+  printf '%s\t%s\t%s\t%s\n' "$user" "$host" "$port" "$db"
+}
+
+validate_database_url_consistency() {
+  local file="$1"
+  local owner_url runtime_url owner_parts runtime_parts
+  local owner_user owner_host owner_port owner_db
+  local runtime_user runtime_host runtime_port runtime_db
+
+  owner_url="$(env_value "$file" "OWNER_DATABASE_URL")"
+  runtime_url="$(env_value "$file" "RUNTIME_DATABASE_URL")"
+  [ -n "$owner_url" ] || fail_url_consistency "OWNER_DATABASE_URL is empty in $file"
+  [ -n "$runtime_url" ] || fail_url_consistency "RUNTIME_DATABASE_URL is empty in $file"
+
+  owner_parts="$(database_url_parts "$owner_url" "OWNER_DATABASE_URL in $file")"
+  runtime_parts="$(database_url_parts "$runtime_url" "RUNTIME_DATABASE_URL in $file")"
+
+  IFS=$'\t' read -r owner_user owner_host owner_port owner_db <<< "$owner_parts"
+  IFS=$'\t' read -r runtime_user runtime_host runtime_port runtime_db <<< "$runtime_parts"
+
+  if [ "$owner_host" != "$runtime_host" ] || [ "$owner_port" != "$runtime_port" ] || [ "$owner_db" != "$runtime_db" ]; then
+    fail_url_consistency "OWNER_DATABASE_URL and RUNTIME_DATABASE_URL must share host, port, and database name in $file"
+  fi
+
+  if [ -n "$owner_user" ] && [ "$owner_user" = "$runtime_user" ]; then
+    warn "OWNER_DATABASE_URL and RUNTIME_DATABASE_URL use the same user in $file; owner=runtime is a misuse risk"
+  fi
 }
 
 validate_jwt_secret() {
@@ -107,10 +180,12 @@ check_existing_volumes() {
 validate_env_file "$INFRA_ENV"
 validate_password "$INFRA_ENV" "POSTGRES_PASSWORD"
 validate_password "$INFRA_ENV" "REDIS_PASSWORD"
+validate_database_url_consistency "$INFRA_ENV"
 
 if [ -f "$API_ENV" ]; then
   validate_env_file "$API_ENV"
   validate_jwt_secret "$API_ENV"
+  validate_database_url_consistency "$API_ENV"
 else
   warn "packages/api/.env not found; create it before running the API outside Docker"
 fi

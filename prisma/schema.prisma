@@ -73,8 +73,9 @@ model AuditLog {
   action    String
   hash      String   @unique(map: "audit_hash_unique")
   prevHash  String
-  /// PII WARNING: Plain Json payload. Phase 1 이전에 envelope encryption 또는 redaction 정책 확정 필수.
-  /// 최소 필드: digest hash·timestamp·actorId. 평문 PII 저장 금지.
+  /// PII CONTROL: Plain Json payload is forbidden for personal data.
+  /// Required flow before Phase 1 inserts: classify -> redact/encrypt -> store digest/timestamp/actorId only -> approve.
+  /// Phase 1 backlog: envelope encryption and canonical digest must run before INSERT.
   payload   Json
   createdAt DateTime @default(now())
 
@@ -89,8 +90,9 @@ model WormLog {
   id        String       @id @default(cuid())
   source    String
   level     WormLogLevel
-  /// PII WARNING: Operational message only. Phase 1 이전에 redaction 정책 확정 필수.
-  /// 평문 PII 저장 금지. 필요한 경우 digest hash·timestamp·actorId 중심으로 별도 payload 설계를 확정한다.
+  /// PII CONTROL: Operational message only; no personal data, secrets, tokens, or raw prompts.
+  /// Required flow before Phase 1 inserts: classify -> redact/encrypt -> store digest/timestamp/source only -> approve.
+  /// Phase 1 backlog: message redaction and canonical digest must run before INSERT.
   message   String
   hash      String       @unique(map: "worm_hash_unique")
   prevHash  String
@@ -107,8 +109,9 @@ model AdminActionLog {
   id        String   @id @default(cuid())
   adminId   String
   action    String
-  /// PII WARNING: Plain Json payload. Phase 1 이전에 envelope encryption 또는 redaction 정책 확정 필수.
-  /// 최소 필드: digest hash·timestamp·actorId. 평문 PII 저장 금지.
+  /// PII CONTROL: Plain Json payload is forbidden for personal data.
+  /// Required flow before Phase 1 inserts: classify -> redact/encrypt -> store digest/timestamp/adminId only -> approve.
+  /// Phase 1 backlog: envelope encryption and canonical digest must run before INSERT.
   payload   Json
   hash      String   @unique(map: "admin_hash_unique")
   prevHash  String
@@ -124,8 +127,9 @@ model AdminActionLog {
 model DmsTriggerLog {
   id          String   @id @default(cuid())
   triggerType String
-  /// PII WARNING: Plain Json payload. Phase 1 이전에 envelope encryption 또는 redaction 정책 확정 필수.
-  /// 최소 필드: digest hash·timestamp·actorId. 평문 PII 저장 금지.
+  /// PII CONTROL: Plain Json payload is forbidden for personal data.
+  /// Required flow before Phase 1 inserts: classify -> redact/encrypt -> store digest/timestamp/triggerType only -> approve.
+  /// Phase 1 backlog: envelope encryption and canonical digest must run before INSERT.
   payload     Json
   hash        String   @unique(map: "dms_hash_unique")
   prevHash    String
@@ -142,8 +146,9 @@ model ProofBundle {
   id         String   @id @default(cuid())
   sessionId  String
   contractId String
-  /// PII WARNING: Plain Json payload. Phase 1 이전에 envelope encryption 또는 redaction 정책 확정 필수.
-  /// 최소 필드: digest hash·timestamp·actorId. 평문 PII 저장 금지.
+  /// PII CONTROL: Plain Json payload is forbidden for personal data.
+  /// Required flow before Phase 1 inserts: classify -> redact/encrypt -> store digest/timestamp/sessionId only -> approve.
+  /// Phase 1 backlog: envelope encryption and canonical digest must run before INSERT.
   payload    Json
   signature  String
   hash       String   @unique(map: "proof_hash_unique")
