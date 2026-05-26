@@ -1,5 +1,83 @@
 # Coesite
 
+Coesite MVP는 Runtime Seyer 기반 AI Trust Security Guard다. 고객 시스템은
+`/v1/guard/verify`에 요청 단위 context를 보내고, Coesite는 사람의 최종 책임
+판단을 대체하지 않는 control signal을 반환한다.
+
+현재 MVP API는 다음을 실제 연결해 평가한다.
+
+- TokenNorm + OraclePrevention
+- MetaLayer AllowList/GTED + SemanticFirewall + SIREN
+- Turing Boundary fingerprint/provenance/velocity/session budget
+- Trust Cube ComplyGate + TrustMetabolism + ConsensusGate
+- ProofGate ReleaseContract + ProofBundle append-only evidence
+- RedGate auditor proof lookup without raw context exposure
+- WORM-style trace/evidence reference
+
+## 유료 MVP 사용 흐름
+
+```ts
+import { CoesiteClient } from "@coesite/sdk";
+
+const client = new CoesiteClient({
+  baseUrl: "https://api.example.com",
+  apiKey: process.env.COESITE_API_KEY,
+  responseVerificationKey: process.env.COESITE_RESPONSE_VERIFICATION_KEY,
+  auditKey: process.env.COESITE_REDGATE_AUDIT_KEY,
+});
+
+const result = await client.verifyGuard({
+  action: "read",
+  requestId: "req-1",
+  resource: "doc-1",
+  subjectRef: "agent-1",
+});
+
+if (result.control === "BLOCK") {
+  throw new Error("Coesite guard blocked this request");
+}
+
+const proof = await client.getProofBundle("req-1");
+console.log(proof?.hash);
+```
+
+`PROCEED`는 실행 허가가 아니라, 현재 정책과 게이트 기준에서 차단 신호가 없다는
+뜻이다. 사람의 승인, 사업 판단, 법적 책임은 호출 시스템과 운영자에게 남는다.
+
+## MVP 운영 환경 변수
+
+```powershell
+COESITE_POLICY_HMAC_KEY=<openssl rand -hex 32>
+COESITE_RESPONSE_HMAC_KEY=<openssl rand -hex 32>
+COESITE_API_KEYS=<customer key 1>,<customer key 2>
+COESITE_REDGATE_AUDIT_KEYS=<auditor key 1>,<auditor key 2>
+COESITE_ALLOWED_ACTIONS=read
+COESITE_PROOF_BUNDLE_APPEND_PATH=/secure/worm/proof-bundle.jsonl
+```
+
+`COESITE_POLICY_HMAC_KEY`, `COESITE_RESPONSE_HMAC_KEY`, `COESITE_API_KEYS`,
+`COESITE_REDGATE_AUDIT_KEYS`, `COESITE_WORM_APPEND_PATH`,
+`COESITE_PROVENANCE_APPEND_PATH`, `COESITE_PROOF_BUNDLE_APPEND_PATH`는 로컬 개발에서만
+기본값 또는 미설정으로 동작한다. `NODE_ENV=production`, `NODE_ENV=staging`,
+`COESITE_ENV=production`, `COESITE_ENV=staging`에서는 누락 시 앱이 시작되지
+않는다.
+프로덕션에서는 반드시 KMS 또는 secret manager로 주입한다.
+
+## MVP 게이트 확인
+
+```powershell
+pnpm -r build
+pnpm -r exec tsc --noEmit
+TMPDIR=/tmp pnpm test
+SCAN_DIR=. bash scripts/scan-principles.sh
+bash scripts/security-wall.sh
+bash scripts/secret-scan.sh
+pnpm audit --audit-level moderate
+```
+
+현재 MVP는 core/runtime 연결 제품이다. 유료 파일럿 판매 전에는 고객별 허용 action,
+보존 정책, WORM 저장소, API 키 발급·회수 절차를 계약서와 함께 고정한다.
+
 ## 사전 요구사항
 
 - Node 22 (`.nvmrc` 기준)

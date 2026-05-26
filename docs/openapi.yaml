@@ -1,0 +1,388 @@
+openapi: 3.1.0
+info:
+  title: Coesite Guard API
+  version: 0.2.0
+  summary: Runtime Seyer guard contract for Coesite MVP.
+  description: >
+    This contract exposes the paid-MVP guard surface. Requests are evaluated
+    through Runtime Seyer: TokenNorm, MetaLayer, Turing Boundary, PolicyGate,
+    TrustMetabolism, SessionBoundary, and ConsensusGate. The API returns control
+    signals and evidence references. It does not transfer final human
+    accountability to AI.
+servers:
+  - url: https://api.coesite.example
+    description: Placeholder production URL.
+paths:
+  /v1/guard/verify:
+    post:
+      operationId: verifyGuard
+      security:
+        - bearerAuth: []
+      summary: Evaluate a guard request without delegating final human responsibility.
+      description: >
+        The endpoint returns control signals and evidence references. It does not
+        make a human accountability decision.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CoesiteGuardRequest"
+      responses:
+        "200":
+          description: Guard response. Safe requests may return PROCEED; risk or gate failure returns BLOCK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoesiteGuardResponse"
+              examples:
+                proceed:
+                  value:
+                    requestId: req-1
+                    control: PROCEED
+                    signals:
+                      riskScore: 0
+                      confidence: 1
+                      flags:
+                        - guard_passed
+                    evidence:
+                      - kind: trace
+                        ref: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+                      - kind: policy
+                        ref: coesite-mvp-policy:1
+                    receipt:
+                      algorithm: HMAC-SHA256
+                      issuedAt: "2026-05-26T00:00:00.000Z"
+                      keyId: coesite-response-key-v1
+                      payloadHash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+                      signature: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+                block:
+                  value:
+                    requestId: req-risk
+                    control: BLOCK
+                    signals:
+                      riskScore: 100
+                      confidence: 1
+                      flags:
+                        - guard_blocked
+                    evidence:
+                      - kind: trace
+                        ref: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+                      - kind: policy
+                        ref: coesite-mvp-policy:1
+                    receipt:
+                      algorithm: HMAC-SHA256
+                      issuedAt: "2026-05-26T00:00:00.000Z"
+                      keyId: coesite-response-key-v1
+                      payloadHash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+                      signature: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+        "403":
+          description: Uniform rejection envelope for missing or invalid credentials and rejected requests outside the 200 guard contract.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoesiteErrorEnvelope"
+  /v1/redgate/proofs/{requestId}:
+    get:
+      operationId: getRedGateProof
+      security:
+        - bearerAuth: []
+      summary: Return a redacted proof bundle for auditor verification.
+      description: >
+        RedGate exposes append-only proof metadata for an already evaluated guard
+        request. The response excludes raw request context, raw subjectRef, and
+        raw resource values; it returns hashes and evidence digests only. Missing
+        or unauthorized requests use the same uniform rejection envelope.
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+      responses:
+        "200":
+          description: Redacted proof bundle view.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoesiteProofBundleView"
+        "403":
+          description: Uniform rejection envelope for missing, invalid, or non-existing audit access.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoesiteErrorEnvelope"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: customer-api-key
+  schemas:
+    CoesiteGuardRequest:
+      type: object
+      required:
+        - requestId
+        - subjectRef
+        - action
+        - resource
+      additionalProperties: false
+      properties:
+        requestId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        subjectRef:
+          type: string
+          minLength: 1
+          maxLength: 128
+        action:
+          type: string
+          minLength: 1
+          maxLength: 128
+        resource:
+          type: string
+          minLength: 1
+          maxLength: 128
+        context:
+          type: object
+          description: >
+            Business metadata only. Security-reserved runtime keys are ignored
+            by the server and must not be used by clients.
+          maxProperties: 20
+          propertyNames:
+            not:
+              enum:
+                - sessionId
+                - sessionBudget
+                - budgetCost
+                - approverRefs
+                - requestIntervalsMs
+                - responseCodes
+                - tokenCounts
+                - sourceIp
+                - trustBaseline
+                - trustScore
+          properties:
+            humanApproval:
+              $ref: "#/components/schemas/MvpHumanApprovalArtifact"
+          additionalProperties:
+            type:
+              - string
+              - number
+              - boolean
+              - "null"
+        idempotencyKey:
+          type: string
+          minLength: 1
+          maxLength: 128
+    CoesiteGuardResponse:
+      type: object
+      required:
+        - requestId
+        - control
+        - signals
+        - evidence
+        - receipt
+      additionalProperties: false
+      properties:
+        requestId:
+          type: string
+        control:
+          type: string
+          enum:
+            - PROCEED
+            - BLOCK
+        signals:
+          $ref: "#/components/schemas/CoesiteSignals"
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/CoesiteEvidenceRef"
+        receipt:
+          $ref: "#/components/schemas/CoesiteGuardReceipt"
+    CoesiteSignals:
+      type: object
+      required:
+        - riskScore
+        - confidence
+        - flags
+      additionalProperties: false
+      properties:
+        riskScore:
+          type: number
+          minimum: 0
+          maximum: 100
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        flags:
+          type: array
+          items:
+            type: string
+    CoesiteEvidenceRef:
+      type: object
+      required:
+        - kind
+        - ref
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum:
+            - audit
+            - worm
+            - trace
+            - policy
+        ref:
+          type: string
+          minLength: 1
+    CoesiteGuardReceipt:
+      type: object
+      required:
+        - algorithm
+        - issuedAt
+        - keyId
+        - payloadHash
+        - signature
+      additionalProperties: false
+      properties:
+        algorithm:
+          type: string
+          const: HMAC-SHA256
+        issuedAt:
+          type: string
+          format: date-time
+        keyId:
+          type: string
+          minLength: 1
+        payloadHash:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+        signature:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+    MvpHumanApprovalArtifact:
+      type: object
+      required:
+        - approvalId
+        - expiresAt
+        - humanRefs
+        - signature
+      additionalProperties: false
+      properties:
+        approvalId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        expiresAt:
+          type: string
+          format: date-time
+        humanRefs:
+          type: array
+          minItems: 2
+          items:
+            type: string
+            minLength: 1
+            maxLength: 128
+        signature:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+    CoesiteProofEvidenceDigest:
+      type: object
+      required:
+        - kind
+        - refHash
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum:
+            - audit
+            - worm
+            - trace
+            - policy
+        refHash:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+    CoesiteProofBundleView:
+      type: object
+      required:
+        - action
+        - bundleId
+        - contractHash
+        - control
+        - createdAt
+        - evidence
+        - hash
+        - policyVersion
+        - prevHash
+        - receiptPayloadHash
+        - requestId
+        - resourceHash
+        - runtimeVersion
+        - subjectRefHash
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+          minLength: 1
+          maxLength: 128
+        bundleId:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+        contractHash:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+        control:
+          type: string
+          enum:
+            - PROCEED
+            - BLOCK
+        createdAt:
+          type: string
+          format: date-time
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/CoesiteProofEvidenceDigest"
+        hash:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+        policyVersion:
+          type: string
+          minLength: 1
+        prevHash:
+          oneOf:
+            - type: string
+              const: GENESIS
+            - type: string
+              pattern: "^[a-f0-9]{64}$"
+        receiptPayloadHash:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+        requestId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        resourceHash:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+        runtimeVersion:
+          type: string
+          minLength: 1
+        subjectRefHash:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+    CoesiteErrorEnvelope:
+      type: object
+      required:
+        - error
+      additionalProperties: true
+      properties:
+        error:
+          type: string
+          const: request_rejected

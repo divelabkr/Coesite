@@ -1,16 +1,16 @@
-# 03-PROMPTS.md — Phase별 Claude Code 프롬프트
-**Coesite MVP P0 · 14주 클로드 코드 실행 지시서**
+# 03-PROMPTS.md — Phase별 Codex 프롬프트
+**Coesite MVP P0 · 14주 Codex 다중 AI 실행 지시서**
 
 ---
 
 ## 0. 사용 방법
 
-각 Phase 시작 시 해당 섹션을 그대로 클로드 코드에 붙여넣는다.
+각 Phase 시작 시 해당 섹션을 Codex-Orchestrator 작업지시에 붙인다.
 프롬프트 앞에 항상 다음 prefix를 붙인다:
 
 ```
 [Coesite Session Start]
-00-MASTER-PLAN.md, 01-CLAUDE.md, 02-AGENTS.md, 04-SECURITY-WALL.md 읽고
+00-MASTER-PLAN.md, 01-CLAUDE.md, 02-AGENTS.md, 04-SECURITY-WALL.md, 08-MULTI-AI-WORKFLOW.md 읽고
 8-agent 활성화 후 아래 Phase {N} 프롬프트 실행.
 
 ---
@@ -861,7 +861,7 @@ Phase 7 - Task 1: 외부 보안 감사
    - OWASP Web Top 10
    - 시크릿 노출 스캔 (truffleHog)
 2. Opus 4.7 peer review:
-   - 별도 클로드 세션에서 코드베이스 리뷰
+   - 별도 Codex-Reviewer dispatch에서 코드베이스 리뷰
    - Critical/High/Medium 이슈 정리
 3. 부족분 보강 (max 1주)
 ```
@@ -937,5 +937,5 @@ Phase 7 - Task 2: 최종 리포트
 
 ---
 
-*이 프롬프트 모음은 클로드 코드 14주 운영의 전체 지시서다.*
+*이 프롬프트 모음은 Codex 다중 AI 14주 운영의 전체 지시서다.*
 *각 Phase 시작 시 그대로 복사·붙여넣기 가능하도록 설계됨.*

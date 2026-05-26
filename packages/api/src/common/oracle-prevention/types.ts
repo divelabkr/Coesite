@@ -3,6 +3,8 @@ import type { TokenNormFinding } from "../../meta-layer/token-norm/types";
 export interface OraclePreventionOptions {
   readonly minimumElapsedMs?: number;
   readonly segmentSizeBytes?: number;
+  readonly maxBodyBytes?: number;
+  readonly nonceProvider?: () => string;
 }
 
 export interface OracleRejectionFinding {
@@ -15,6 +17,9 @@ export interface OracleRejectionFinding {
 export interface OracleHttpResponse {
   status(statusCode: number): OracleHttpResponse;
   setHeader(name: string, value: string): void;
+  getHeaderNames?: () => string[];
+  removeHeader?: (name: string) => void;
+  destroy?: (error?: Error) => void;
   end(body?: string): void;
   statusCode?: number;
   headersSent?: boolean;

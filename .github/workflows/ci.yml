@@ -10,8 +10,41 @@ permissions:
   contents: read
 
 jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+  build:
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+
   type-check:
     runs-on: ubuntu-latest
+    needs: install
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,9 +59,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r exec tsc --noEmit
 
-  unit-test:
+  test:
     runs-on: ubuntu-latest
-    needs: type-check
+    needs: [build, type-check]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,7 +74,75 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test
+      - run: TMPDIR=/tmp pnpm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [build, type-check]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: TMPDIR=/tmp pnpm run test:e2e
+
+  security-regressions:
+    runs-on: ubuntu-latest
+    needs: [build, type-check]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: TMPDIR=/tmp pnpm run test:security
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level moderate
+
+  prisma-validate:
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: DATABASE_URL=postgresql://user:pass@localhost:5432/coesite pnpm exec prisma validate --schema=prisma/schema.prisma
 
   scan-principles:
     runs-on: ubuntu-latest
@@ -58,7 +159,16 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: SCAN_DIR=packages bash scripts/scan-principles.sh
+      - run: SCAN_DIR=. bash scripts/scan-principles.sh
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: bash scripts/secret-scan.sh
 
   constitution-drift:
     runs-on: ubuntu-latest
@@ -83,7 +193,7 @@ jobs:
 
   security-wall:
     runs-on: ubuntu-latest
-    needs: type-check
+    needs: install
     steps:
       - uses: actions/checkout@v4
         with:

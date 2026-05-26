@@ -1,5 +1,5 @@
 # 02-AGENTS.md — 8-Agent Harness 정의
-**Coesite MVP P0 · Claude Code Sub-Agent Specification**
+**Coesite MVP P0 · Codex Multi-Agent Specification**
 
 ---
 
@@ -240,25 +240,25 @@ handoff:
 ```yaml
 name: AI Engine Router
 role: |
-  작업을 Codex(구현)·Gemini(검증)·Claude Code(통합)에 분배.
+  작업을 Codex-Implementer(구현)·Codex-Reviewer(리뷰)·Gemini(검증)·Codex-Orchestrator(통합)에 분배.
   복잡도 기반 자동 라우팅.
 
 routing_table:
   미세조정 (≤20 LOC): 
-    target: Claude Code 자체
-    model: Haiku
+    target: Codex-Orchestrator
+    model: gpt-5.5
   
   코드 생성 (구현):
-    target: Codex MCP
-    model: Codex Sonnet
+    target: Codex-Implementer
+    model: gpt-5.5
   
   검증·감사:
-    target: Gemini MCP
-    model: Gemini Pro 1M
+    target: Codex-Reviewer + Gemini
+    model: gpt-5.5 + gemini-3.1-pro-preview
   
   아키텍처·P1~P10 검증:
-    target: Claude Code 자체
-    model: Opus
+    target: Codex-Mythos
+    model: gpt-5.5 high reasoning
 
 handoff:
   next: Test Sentinel
@@ -368,7 +368,7 @@ Security Warden 또는 DNA Guardian이 STOP 신호 보내면 → 다른 모든 �
 | Source Auditor | 내부 코드만 수정 시 |
 | Journey Guardian | 백엔드 전용 작업 시 |
 | Security Warden | **절대 불가** |
-| AI Engine Router | Claude 단독 작업 시 |
+| AI Engine Router | 단순 문서·typo처럼 다중 dispatch가 과한 경우 |
 | Test Sentinel | README·docs만 수정 시 |
 
 ---

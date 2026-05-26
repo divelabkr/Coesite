@@ -90,6 +90,17 @@ echo ""
 
 # ─── P5: AttestationChain prevHash 누락 ────────────────────────
 echo "[P5] AttestationChain continuity check..."
+P5_DIRECT_CREATE=$(grep -rn $EXCLUDE_DIRS \
+  -E "(\.(auditLog|wormLog|adminActionLog|dmsTriggerLog|proofBundle)|\[['\"]?(auditLog|wormLog|adminActionLog|dmsTriggerLog|proofBundle)['\"]?\])\.create[[:space:]]*\(" \
+  "$SCAN_DIR" --include="*.ts" --include="*.js" 2>/dev/null | \
+  grep -v "worm-append.repository" || true)
+
+if [ -n "$P5_DIRECT_CREATE" ]; then
+  echo "❌ P5 VIOLATION: Direct WORM create detected; use canonical append helper/repository"
+  echo "$P5_DIRECT_CREATE"
+  FAIL=1
+fi
+
 # AuditLog 생성 시 prevHash 필드 누락 패턴
 P5_HITS=$(grep -rn $EXCLUDE_DIRS -A 10 \
   -E "auditLog\.create|wormLog\.create|adminActionLog\.create|dmsTriggerLog\.create|proofBundle\.create" \
@@ -97,10 +108,10 @@ P5_HITS=$(grep -rn $EXCLUDE_DIRS -A 10 \
   grep -B 1 "data:" | grep -v "prevHash" | grep "data:" || true)
 
 if [ -n "$P5_HITS" ]; then
-  echo "⚠️  P5 SUSPICIOUS: WORM record creation without prevHash (manual review)"
+  echo "❌ P5 VIOLATION: WORM record creation without prevHash"
   echo "$P5_HITS"
-  # Don't fail - just warn (false positives possible)
-else
+  FAIL=1
+elif [ -z "$P5_DIRECT_CREATE" ]; then
   echo "✅ P5 OK"
 fi
 echo ""

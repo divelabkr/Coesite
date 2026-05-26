@@ -1,5 +1,7 @@
 # CLAUDE.md — Coesite MVP P0 프로젝트 헌법
-**DiveLab AI Trust Security Protocol · Claude Code 작업 절대 규칙**
+**DiveLab AI Trust Security Protocol · Codex 작업 절대 규칙**
+
+> 파일명 `CLAUDE.md`는 도구 호환을 위해 유지한다. 운영 주체와 역할명은 Codex 기준으로 해석한다.
 
 ---
 
@@ -12,7 +14,8 @@
 2. docs/01-CLAUDE.md          (이 파일·헌법)
 3. docs/02-AGENTS.md          (8-agent 활성화)
 4. docs/04-SECURITY-WALL.md   (Mountain급 차단 룰)
-5. 현재 Phase에 해당하는 docs/03-PROMPTS.md 섹션
+5. docs/08-MULTI-AI-WORKFLOW.md (Codex 다중 AI 운영)
+6. 현재 Phase에 해당하는 docs/03-PROMPTS.md 섹션
 ```
 
 세션 첫 응답에 다음을 출력해야 한다:
@@ -136,7 +139,7 @@ WORM:        Postgres 트리거 + S3 Object Lock COMPLIANCE 7년 (이중)
 
 ## 4. Mountain급 봉인 (절대 노출 금지)
 
-다음 키워드/개념은 클로드 코드 컨텍스트, 코드 주석, 커밋 메시지, README, 변수명, 함수명, 어떤 곳에도 등장 금지:
+다음 키워드/개념은 Codex 컨텍스트, 코드 주석, 커밋 메시지, README, 변수명, 함수명, 어떤 곳에도 등장 금지:
 
 ```
 금지 키워드 (즉시 차단):
@@ -229,7 +232,7 @@ coesite/
 ├── docs/
 │   ├── 00-MASTER-PLAN.md       # 이 마스터 플랜
 │   ├── 01-CLAUDE.md            # 이 파일
-│   ├── ... (08-FILE-STRUCTURE.md까지)
+│   ├── ... (08-MULTI-AI-WORKFLOW.md까지)
 │   └── openapi.yaml            # API 명세
 ├── tasks/                      # Plan·Post-Mortem
 │   ├── phase0/
@@ -241,30 +244,38 @@ coesite/
 
 ---
 
-## 8. 에이전트 역할 분담
+## 8. 다중 AI 역할 분담
 
 ```
-Claude (오케스트레이터):
-  - 설계 결정 + 코드 분석 + 최종 판단
-  - Phase 게이트 검증
-  - 8-agent 활성화·조율
+Codex-Orchestrator (작업지시·종합):
+  - 작업지시 작성 + 영향 맵 5축 확정
+  - Codex/Gemini 검증 결과 종합
+  - Phase 게이트와 계획 대비 진행표 관리
+  - 사람 결재용 Executive Summary 작성
 
-Codex (구현자):
-  - 코드 생성 (Sonnet 4 모델)
+Codex-Implementer (구현):
+  - 파일 검수·읽기·수정·구현 전담
   - 타입 엄격성 준수
-  - 테스트 코드 작성
+  - 테스트 코드 작성 및 docs/codex-log 요약본 작성
 
-Gemini (검증자):
+Codex-Reviewer (교차검증):
+  - read-only 리뷰, 작업지시 결함 8종 점검
+  - P1~P10, 영향 맵 누락, 회귀 테스트 누락 확인
+
+Codex-RedTeam / Codex-Mythos (심층 검증):
+  - 보안·증거 인접 변경의 공격자 시각 검토
+  - 변곡점·페이즈 전환 시 foundational skeptic-architect 시각 검토
+
+Gemini (외부 시각 검증자):
   - 결과물 품질 감사
-  - 보조 리뷰 (1M 컨텍스트 활용)
+  - UX·아키텍처·대안·누락 관점 첨언
 
-Claude Code (검증자):
-  - tsc·vitest·scan 실행
-  - PR 리뷰
-  - DNA Guardian + 7 sub-agent 활성화
+사장님 (HumanGate):
+  - 최종 결재·승인·보류 판단
+  - AI는 결재 자료를 만들고, 최종 책임 판단은 사람에게 남김
 ```
 
-자세한 8-agent 정의는 `02-AGENTS.md` 참조.
+자세한 8-agent 정의는 `02-AGENTS.md`, 다중 AI 운영 절차는 `08-MULTI-AI-WORKFLOW.md` 참조.
 
 ---
 
@@ -326,4 +337,4 @@ Claude Code (검증자):
 
 ---
 
-*이 문서는 Coesite MVP P0 작업의 절대 규칙이다. 모든 클로드 코드 세션은 이를 준수해야 한다.*
+*이 문서는 Coesite MVP P0 작업의 절대 규칙이다. 모든 Codex 세션은 이를 준수해야 한다.*

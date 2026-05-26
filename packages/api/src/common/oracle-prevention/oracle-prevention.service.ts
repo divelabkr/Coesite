@@ -1,7 +1,10 @@
+import { createHash, randomBytes } from "node:crypto";
+
 import { Inject, Injectable, Optional } from "@nestjs/common";
 
-import { emlHex } from "./eml.util";
+import { eml } from "./eml.util";
 import {
+  DEFAULT_MAX_BODY_BYTES,
   DEFAULT_SEGMENT_SIZE_BYTES,
   createPaddedJsonBody,
 } from "./size-padding.util";
@@ -14,12 +17,14 @@ import {
 
 const DEFAULT_MINIMUM_ELAPSED_MS = 200;
 const REJECTION_STATUS = 403;
-const DUMMY_EML = "00000000000000000000000000000000";
+const PROCESS_PEPPER = randomBytes(16).toString("hex");
 
 @Injectable()
 export class OraclePreventionService {
   private readonly minimumElapsedMs: number;
   private readonly segmentSizeBytes: number;
+  private readonly maxBodyBytes: number;
+  private readonly nonceProvider: () => string;
 
   constructor(
     @Optional()
@@ -30,6 +35,9 @@ export class OraclePreventionService {
       options.minimumElapsedMs ?? DEFAULT_MINIMUM_ELAPSED_MS;
     this.segmentSizeBytes =
       options.segmentSizeBytes ?? DEFAULT_SEGMENT_SIZE_BYTES;
+    this.maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
+    this.nonceProvider =
+      options.nonceProvider ?? (() => randomBytes(16).toString("hex"));
   }
 
   async padSuccess(
@@ -38,10 +46,18 @@ export class OraclePreventionService {
     startedAt = performance.now(),
   ): Promise<void> {
     const statusCode = res.statusCode === 201 ? 201 : 200;
-    const responseBody = createPaddedJsonBody(body, this.segmentSizeBytes);
+    const responseBody = createPaddedJsonBody(
+      body,
+      this.segmentSizeBytes,
+      this.maxBodyBytes,
+    );
+    const emlHeader = this.createMaskedEmlHeader({
+      source: "success",
+      statusCode,
+    });
 
     await this.padElapsed(startedAt);
-    this.writeResponse(res, statusCode, responseBody, DUMMY_EML);
+    this.writeResponse(res, statusCode, responseBody, emlHeader);
   }
 
   async padAndReject(
@@ -52,8 +68,9 @@ export class OraclePreventionService {
     const responseBody = createPaddedJsonBody(
       { error: "request_rejected" },
       this.segmentSizeBytes,
+      this.maxBodyBytes,
     );
-    const emlHeader = this.createRejectionEmlHeader(finding);
+    const emlHeader = this.createMaskedEmlHeader(finding);
 
     await this.padElapsed(startedAt);
     this.writeResponse(res, REJECTION_STATUS, responseBody, emlHeader);
@@ -70,11 +87,14 @@ export class OraclePreventionService {
     emlHeader: string,
   ): void {
     if (res.headersSent === true) {
-      console.error("oracle-prevention headers already sent");
+      if (typeof res.destroy === "function") {
+        res.destroy(new Error("oracle prevention headers already sent"));
+      }
       return;
     }
 
     res.status(statusCode);
+    this.clearExistingHeaders(res);
     res.setHeader("content-type", "application/json; charset=utf-8");
     res.setHeader("cache-control", "no-store");
     res.setHeader("content-encoding", "identity");
@@ -84,11 +104,36 @@ export class OraclePreventionService {
     res.end(body);
   }
 
-  private createRejectionEmlHeader(finding: OracleRejectionFinding): string {
+  private createMaskedEmlHeader(finding: OracleRejectionFinding): string {
     const sourceWeight = Math.max(1, finding.source.length);
     const statusWeight = Math.max(1, finding.statusCode ?? REJECTION_STATUS);
+    const emlRaw = eml(Math.log(sourceWeight + 1), statusWeight);
 
-    return emlHex(Math.log(sourceWeight + 1), statusWeight);
+    return createHash("sha256")
+      .update(
+        JSON.stringify({
+          emlRaw,
+          finding,
+          nonce: this.nonceProvider(),
+          pepper: PROCESS_PEPPER,
+          statusWeight,
+        }),
+      )
+      .digest("hex")
+      .slice(0, 32);
+  }
+
+  private clearExistingHeaders(res: OracleHttpResponse): void {
+    if (
+      typeof res.getHeaderNames !== "function" ||
+      typeof res.removeHeader !== "function"
+    ) {
+      return;
+    }
+
+    for (const headerName of res.getHeaderNames()) {
+      res.removeHeader(headerName);
+    }
   }
 
   private async padElapsed(startedAt: number): Promise<void> {

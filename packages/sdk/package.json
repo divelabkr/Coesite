@@ -1,7 +1,7 @@
 {
   "name": "@coesite/sdk",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "private": false,
   "type": "commonjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,6 +9,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@coesite/types": "workspace:*"
+    "@coesite/types": "workspace:*",
+    "@coesite/utils": "workspace:*"
   }
 }

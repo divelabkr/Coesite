@@ -6,10 +6,25 @@ import {
   OraclePreventionModule,
   UniformErrorFilter,
 } from "./common/oracle-prevention";
+import { RequestClockModule } from "./common/request-clock";
+import { ContractsModule } from "./contracts";
+import { RedGateModule } from "./red-gate";
+import { MetaLayerModule } from "./meta-layer/meta-layer";
 import { TokenNormModule } from "./meta-layer/token-norm";
+import { TrustCubeModule } from "./trust-cube";
+import { TuringBoundaryModule } from "./turing";
 
 @Module({
-  imports: [OraclePreventionModule, TokenNormModule],
+  imports: [
+    RequestClockModule,
+    OraclePreventionModule,
+    TokenNormModule,
+    MetaLayerModule,
+    TuringBoundaryModule,
+    TrustCubeModule,
+    RedGateModule,
+    ContractsModule,
+  ],
   providers: [
     {
       provide: APP_INTERCEPTOR,

@@ -1,37 +1,48 @@
-import { randomBytes } from "node:crypto";
-
 export const DEFAULT_SEGMENT_SIZE_BYTES = 512;
+export const DEFAULT_MAX_BODY_BYTES = 4096;
 
 type JsonRecord = Record<string, unknown>;
 
 export function createPaddedJsonBody(
   payload: unknown,
   segmentSizeBytes = DEFAULT_SEGMENT_SIZE_BYTES,
+  maxBodyBytes = DEFAULT_MAX_BODY_BYTES,
 ): string {
   if (!Number.isInteger(segmentSizeBytes) || segmentSizeBytes <= 0) {
     throw new Error("segmentSizeBytes must be a positive integer");
   }
-
-  const basePayload = toJsonRecord(payload);
-  let padLength = 0;
-
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    const body = JSON.stringify({
-      ...basePayload,
-      _pad: randomHex(padLength),
-    });
-    const bodyLength = Buffer.byteLength(body);
-    const targetLength =
-      Math.ceil(bodyLength / segmentSizeBytes) * segmentSizeBytes;
-
-    if (bodyLength === targetLength) {
-      return body;
-    }
-
-    padLength += targetLength - bodyLength;
+  if (
+    !Number.isInteger(maxBodyBytes) ||
+    maxBodyBytes < segmentSizeBytes ||
+    maxBodyBytes % segmentSizeBytes !== 0
+  ) {
+    throw new Error("maxBodyBytes must be a positive K-segment integer");
   }
 
-  throw new Error("unable to create K-segment padded JSON body");
+  const basePayload = createSafeJsonRecord(payload, segmentSizeBytes, maxBodyBytes);
+  const bodyWithoutPad = stringifyJson(basePayload);
+
+  if (bodyWithoutPad === undefined) {
+    return createPaddedJsonBody(
+      createSafeSummary(),
+      segmentSizeBytes,
+      maxBodyBytes,
+    );
+  }
+
+  const bodyLength = Buffer.byteLength(bodyWithoutPad);
+  const targetLength =
+    Math.ceil(bodyLength / segmentSizeBytes) * segmentSizeBytes;
+
+  if (targetLength > maxBodyBytes) {
+    return createPaddedJsonBody(
+      createSafeSummary(),
+      segmentSizeBytes,
+      maxBodyBytes,
+    );
+  }
+
+  return bodyWithoutPad + " ".repeat(targetLength - bodyLength);
 }
 
 export function isKSegmentSize(
@@ -39,6 +50,37 @@ export function isKSegmentSize(
   segmentSizeBytes = DEFAULT_SEGMENT_SIZE_BYTES,
 ): boolean {
   return byteLength > 0 && byteLength % segmentSizeBytes === 0;
+}
+
+function createSafeJsonRecord(
+  payload: unknown,
+  segmentSizeBytes: number,
+  maxBodyBytes: number,
+): JsonRecord {
+  const candidate = toJsonRecord(payload);
+  const serialized = stringifyJson(candidate);
+
+  if (serialized === undefined) {
+    return createSafeSummary();
+  }
+
+  const targetLength =
+    Math.ceil(Buffer.byteLength(serialized) / segmentSizeBytes) *
+    segmentSizeBytes;
+
+  return targetLength <= maxBodyBytes ? candidate : createSafeSummary();
+}
+
+function createSafeSummary(): JsonRecord {
+  return { data: null };
+}
+
+function stringifyJson(payload: JsonRecord): string | undefined {
+  try {
+    return JSON.stringify(payload);
+  } catch (_error) {
+    return undefined;
+  }
 }
 
 function toJsonRecord(payload: unknown): JsonRecord {
@@ -51,12 +93,4 @@ function toJsonRecord(payload: unknown): JsonRecord {
   }
 
   return { data: payload };
-}
-
-function randomHex(length: number): string {
-  if (length <= 0) {
-    return "";
-  }
-
-  return randomBytes(Math.ceil(length / 2)).toString("hex").slice(0, length);
 }

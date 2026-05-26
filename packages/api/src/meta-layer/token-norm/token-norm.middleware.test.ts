@@ -75,6 +75,66 @@ describe("TokenNormMiddleware", () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
+  it("preserves signed HumanGate artifacts while inspecting public context", async () => {
+    const middleware = createMiddleware();
+    const humanApproval = {
+      approvalId: "approval-1",
+      expiresAt: "2099-01-01T00:00:00.000Z",
+      humanRefs: ["human-1", "human-2"],
+      signature: "a".repeat(64),
+    };
+    const req: TokenNormRequest = {
+      body: {
+        action: "agent.run",
+        context: { businessRef: "case-1", humanApproval },
+        requestId: "req-1",
+        resource: "workflow-1",
+        subjectRef: "agent-1",
+      },
+      query: {},
+      headers: {},
+    };
+    const res = createResponse();
+    const next = vi.fn();
+
+    await middleware.use(req, res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(req.body).toMatchObject({
+      context: { businessRef: "case-1", humanApproval },
+    });
+    expect(req.tokenNormMetadata?.blocked).toBe(false);
+  });
+
+  it("still rejects transformed public context beside HumanGate artifacts", async () => {
+    const middleware = createMiddleware();
+    const req: TokenNormRequest = {
+      body: {
+        context: {
+          businessRef: "ca\u200Bse-1",
+          humanApproval: {
+            approvalId: "approval-1",
+            expiresAt: "2099-01-01T00:00:00.000Z",
+            humanRefs: ["human-1", "human-2"],
+            signature: "a".repeat(64),
+          },
+        },
+      },
+      query: {},
+      headers: {},
+    };
+    const res = createResponse();
+    const next = vi.fn();
+
+    await middleware.use(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(403);
+    expect(req.tokenNormMetadata?.findings[0]?.path).toBe(
+      "$.body.context.businessRef",
+    );
+  });
+
   it("rejects body transformations with a uniform response", async () => {
     const middleware = createMiddleware();
     const req: TokenNormRequest = {
@@ -153,6 +213,33 @@ describe("TokenNormMiddleware", () => {
 
     expect(res.statusCode).toBe(403);
     expect(next).not.toHaveBeenCalled();
+  });
+
+  it("uses a shared request clock when rejecting normalized input", async () => {
+    const padAndReject = vi.fn().mockResolvedValue(undefined);
+    const middleware = new TokenNormMiddleware(
+      new TokenNormService(),
+      { padAndReject } as unknown as OraclePreventionService,
+    );
+    const req: TokenNormRequest & {
+      coesiteRequestClockStartedAt?: number;
+    } = {
+      body: { token: "pay\u200Bload" },
+      query: {},
+      headers: {},
+      coesiteRequestClockStartedAt: 1234,
+    };
+    const res = createResponse();
+    const next = vi.fn();
+
+    await middleware.use(req, res, next);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(padAndReject).toHaveBeenCalledWith(
+      res,
+      expect.objectContaining({ source: "token-norm" }),
+      1234,
+    );
   });
 
   it("configures TokenNormMiddleware for all routes in its module", () => {

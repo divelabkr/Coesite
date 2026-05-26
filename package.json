@@ -8,6 +8,7 @@
     "build": "pnpm -r build",
     "test": "vitest run",
     "test:e2e": "vitest run packages/api/test/e2e",
+    "test:security": "bash scripts/security-regression.sh",
     "db:up": "bash infra/preflight.sh && docker compose --env-file ./infra/.env -f ./infra/docker-compose.yml up -d",
     "db:up:runtime": "pnpm db:up",
     "db:down": "docker compose --env-file ./infra/.env -f ./infra/docker-compose.yml down",
@@ -16,14 +17,16 @@
     "prisma:migrate": "dotenv -e packages/api/.env -- node -e \"process.env.DATABASE_URL=process.env.OWNER_DATABASE_URL; const r=require('node:child_process').spawnSync('pnpm',['exec','prisma','migrate','dev','--schema=prisma/schema.prisma'],{stdio:'inherit',shell:process.platform==='win32'}); process.exit(r.status ?? 1)\"",
     "prisma:reset": "dotenv -e packages/api/.env -- node -e \"process.env.DATABASE_URL=process.env.OWNER_DATABASE_URL; const r=require('node:child_process').spawnSync('pnpm',['exec','prisma','migrate','reset','--schema=prisma/schema.prisma','--force'],{stdio:'inherit',shell:process.platform==='win32'}); process.exit(r.status ?? 1)\"",
     "scan": "rg -n --hidden --glob '!node_modules' --glob '!dist' \"TODO|FIXME\" .",
-    "lint": "pnpm --dir packages/types exec tsc --noEmit -p tsconfig.json && pnpm --dir packages/utils exec tsc --noEmit -p tsconfig.json && pnpm --dir packages/api exec tsc --noEmit -p tsconfig.json && pnpm --dir packages/sdk exec tsc --noEmit -p tsconfig.json"
+    "lint": "pnpm --dir packages/types exec tsc --noEmit -p tsconfig.json && pnpm --dir packages/utils exec tsc --noEmit -p tsconfig.json && pnpm --dir packages/api exec tsc --noEmit -p tsconfig.json && pnpm --dir packages/sdk exec tsc --noEmit -p tsconfig.json",
+    "gate": "bash scripts/gate.sh"
   },
   "devDependencies": {
-    "@types/node": "20.12.12",
+    "@types/node": "22.19.19",
     "dotenv-cli": "^8.0.0",
     "prisma": "^6.19.3",
     "typescript": "5.4.5",
-    "vitest": "1.6.1"
+    "vite": "8.0.14",
+    "vitest": "4.1.7"
   },
   "dependencies": {
     "@prisma/client": "6.19.3"

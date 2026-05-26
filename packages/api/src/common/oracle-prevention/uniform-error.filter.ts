@@ -7,6 +7,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 
+import { getRequestClockStartedAt } from "../request-clock";
 import { OraclePreventionService } from "./oracle-prevention.service";
 import type { OracleHttpResponse } from "./types";
 
@@ -19,14 +20,39 @@ export class UniformErrorFilter implements ExceptionFilter {
   ) {}
 
   async catch(exception: unknown, host: ArgumentsHost): Promise<void> {
-    const response = host.switchToHttp().getResponse<OracleHttpResponse>();
+    const http = host.switchToHttp();
+    const response = http.getResponse<OracleHttpResponse>();
+    const request = http.getRequest<{ originalUrl?: string; url?: string }>();
     const statusCode =
       exception instanceof HttpException ? exception.getStatus() : 500;
+    const reason = exception instanceof Error ? exception.name : typeof exception;
+    const metadata = {
+      message: "redacted",
+      name: reason,
+      path: this.redactPath(request.originalUrl ?? request.url ?? "unknown"),
+      stackPresent: exception instanceof Error && exception.stack !== undefined,
+      statusCode,
+      timestamp: new Date().toISOString(),
+    };
 
-    await this.oraclePrevention.padAndReject(response, {
+    console.error("oracle-prevention exception", metadata);
+
+    const finding = {
       source: "exception",
       statusCode,
-      reason: exception instanceof Error ? exception.name : typeof exception,
-    });
+      reason,
+    };
+    const startedAt = getRequestClockStartedAt(request);
+
+    if (startedAt === undefined) {
+      await this.oraclePrevention.padAndReject(response, finding);
+      return;
+    }
+
+    await this.oraclePrevention.padAndReject(response, finding, startedAt);
+  }
+
+  private redactPath(path: string): string {
+    return path.split("?")[0] || "unknown";
   }
 }

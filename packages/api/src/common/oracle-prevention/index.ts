@@ -3,6 +3,7 @@ export { OraclePreventionInterceptor } from "./oracle-prevention.interceptor";
 export { OraclePreventionModule } from "./oracle-prevention.module";
 export { OraclePreventionService } from "./oracle-prevention.service";
 export {
+  DEFAULT_MAX_BODY_BYTES,
   DEFAULT_SEGMENT_SIZE_BYTES,
   createPaddedJsonBody,
   isKSegmentSize,

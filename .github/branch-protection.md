@@ -7,9 +7,13 @@ Apply these settings to the `main` branch in GitHub repository settings.
 Require these jobs before merge:
 
 - `type-check`
-- `unit-test`
+- `build`
+- `test`
 - `scan-principles`
 - `security-wall`
+- `secret-scan`
+- `dependency-audit`
+- `prisma-validate`
 
 ## Pull Request Review
 

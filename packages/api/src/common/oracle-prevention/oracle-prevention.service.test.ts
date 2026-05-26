@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { EmlFailClosedError, emlHex } from "./eml.util";
 import { OraclePreventionService } from "./oracle-prevention.service";
@@ -27,11 +27,18 @@ function createResponse(): CapturedResponse {
 }
 
 describe("OraclePreventionService", () => {
-  it("pads JSON bodies to the configured K segment", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it("pads JSON bodies to the configured K segment without changing parsed data", () => {
     const body = createPaddedJsonBody({ ok: true });
+    const parsed = JSON.parse(body) as Record<string, unknown>;
 
     expect(isKSegmentSize(Buffer.byteLength(body))).toBe(true);
-    expect(JSON.parse(body)).toMatchObject({ ok: true });
+    expect(parsed).toEqual({ ok: true });
+    expect(parsed).not.toHaveProperty("_pad");
   });
 
   it("uses a 32-character lowercase hex EML header for rejection", async () => {
@@ -47,17 +54,63 @@ describe("OraclePreventionService", () => {
     expect(Buffer.byteLength(response.body ?? "")).toBe(512);
   });
 
-  it("uses the fixed-width dummy EML header for successful responses", async () => {
+  it("masks successful response EML without exposing a nonce", async () => {
     const service = new OraclePreventionService({ minimumElapsedMs: 0 });
     const response = createResponse();
 
     await service.padSuccess(response, { ok: true });
 
     expect(response.statusCode).toBe(200);
-    expect(response.headers["x-coesite-eml"]).toBe(
+    expect(response.headers["x-coesite-eml"]).toMatch(/^[0-9a-f]{32}$/u);
+    expect(response.headers["x-coesite-eml"]).not.toBe(
       "00000000000000000000000000000000",
     );
+    expect(response.headers["x-coesite-nonce"]).toBeUndefined();
     expect(Buffer.byteLength(response.body ?? "")).toBe(512);
+  });
+
+  it("does not repeat the EML header for the same rejection finding", async () => {
+    const service = new OraclePreventionService({ minimumElapsedMs: 0 });
+    const observed = new Set<string>();
+
+    for (let index = 0; index < 100; index += 1) {
+      const response = createResponse();
+      await service.padAndReject(response, {
+        source: "unit-test",
+        statusCode: 403,
+        reason: "same-finding",
+      });
+      observed.add(response.headers["x-coesite-eml"]);
+    }
+
+    expect(observed.size).toBe(100);
+  });
+
+  it("keeps oversized payload responses JSON-parseable within the 4096 byte cap", () => {
+    const body = createPaddedJsonBody({ data: "x".repeat(10_000) });
+
+    expect(() => JSON.parse(body)).not.toThrow();
+    expect(Buffer.byteLength(body)).toBeLessThanOrEqual(4096);
+    expect(isKSegmentSize(Buffer.byteLength(body))).toBe(true);
+  });
+
+  it("fails closed for circular, BigInt, and huge payloads on the uniform path", async () => {
+    const circular: Record<string, unknown> = { ok: true };
+    circular.self = circular;
+    const payloads: unknown[] = [
+      circular,
+      { value: 1n },
+      { data: "x".repeat(100_000) },
+    ];
+    const service = new OraclePreventionService({ minimumElapsedMs: 0 });
+
+    for (const payload of payloads) {
+      const response = createResponse();
+      await expect(service.padSuccess(response, payload)).resolves.toBeUndefined();
+      expect(response.body).toBeDefined();
+      expect(Buffer.byteLength(response.body ?? "")).toBeLessThanOrEqual(4096);
+      expect(() => JSON.parse(response.body ?? "")).not.toThrow();
+    }
   });
 
   it.each([
@@ -82,5 +135,19 @@ describe("OraclePreventionService", () => {
 
     expect(response.body).toBeDefined();
     vi.useRealTimers();
+  });
+
+  it("destroys already-sent responses instead of silently returning", async () => {
+    const service = new OraclePreventionService({ minimumElapsedMs: 0 });
+    const response = {
+      ...createResponse(),
+      destroy: vi.fn(),
+      headersSent: true,
+    };
+
+    await service.padAndReject(response, { source: "already-sent" });
+
+    expect(response.destroy).toHaveBeenCalledWith(expect.any(Error));
+    expect(response.body).toBeUndefined();
   });
 });

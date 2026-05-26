@@ -284,6 +284,7 @@ coesite/
 │   ├── 05-SCAN-PRINCIPLES.sh           # 참조용 사본
 │   ├── 06-VERIFICATION.md
 │   ├── 07-FILE-STRUCTURE.md            # 이 파일
+│   ├── 08-MULTI-AI-WORKFLOW.md         # Codex 중심 다중 AI 운영
 │   ├── openapi.yaml                    # API 명세 (Phase 6)
 │   ├── architecture/
 │   │   ├── meta-layer.md
@@ -325,7 +326,8 @@ coesite/
 │   ├── pre-commit                      # scan + security-wall
 │   └── commit-msg
 │
-├── CLAUDE.md                           # 루트 = docs/01-CLAUDE.md 사본
+├── CLAUDE.md                           # 도구 호환용 루트 = docs/01-CLAUDE.md 사본
+├── AGENTS.md                           # Codex 호환용 루트 = docs/01-CLAUDE.md 사본
 ├── pnpm-workspace.yaml
 ├── package.json
 ├── tsconfig.base.json

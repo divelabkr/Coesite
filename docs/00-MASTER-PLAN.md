@@ -1,15 +1,15 @@
 # Coesite MVP P0 — Master Plan v1.0
-**DiveLab AI Trust Security Protocol · Claude Code 자율 제작 마스터 로드맵**
+**DiveLab AI Trust Security Protocol · Codex 다중 AI 제작 마스터 로드맵**
 
 ---
 
 ## 0. 문서 사용법
 
-이 문서는 **클로드 코드 세션의 GPS**다. 새 세션 시작 시 반드시 이 파일을 첫 번째로 읽고, 현재 어느 Phase에 있는지 확인한 후 작업한다.
+이 문서는 **Codex 세션의 GPS**다. 새 세션 시작 시 반드시 이 파일을 첫 번째로 읽고, 현재 어느 Phase에 있는지 확인한 후 작업한다.
 
 세션 시작 명령:
 ```
-00-MASTER-PLAN.md → 01-CLAUDE.md → 02-AGENTS.md 순서로 읽고,
+00-MASTER-PLAN.md → 01-CLAUDE.md → 02-AGENTS.md → 08-MULTI-AI-WORKFLOW.md 순서로 읽고,
 현재 Phase 확인 후 03-PROMPTS.md의 해당 프롬프트 자동 실행.
 ```
 
@@ -89,7 +89,7 @@ QuantumGate(PQC 서명) · OraclePrevention(균일 응답) · AttestationChain(p
 | D1 | Mono-repo 생성 (`packages/api`, `packages/types`, `packages/utils`, `infra/`) |
 | D2 | docker-compose (Postgres 16 + Redis 7) 로컬 환경 |
 | D3 | Prisma 스키마 v1 (Agent·AuditLog·Policy·Session) + 마이그레이션 |
-| D4 | CLAUDE.md·8-agent 정의·scan-principles.sh·CI 훅 등록 |
+| D4 | Codex 헌법 문서·8-agent 정의·scan-principles.sh·CI 훅 등록 |
 | D5 | Security Wall 검증 (Mountain급 키워드 차단 훅 테스트) |
 | D6 | Phase 0 게이트: `tsc 0 + vitest skel 통과 + scan 0 위반` |
 | D7 | 회고 + Phase 1 진입 |
@@ -229,7 +229,7 @@ Phase 6 (통합 + SDK)
 
 | # | 위험 | 영향 | 완화 |
 |---|---|---|---|
-| R1 | 클로드 코드가 P1~P10 위반 코드 생성 | HIGH | scan-principles.sh 매 커밋 + DNA Guardian 상시 감시 |
+| R1 | Codex가 P1~P10 위반 코드 생성 | HIGH | scan-principles.sh 매 커밋 + DNA Guardian 상시 감시 |
 | R2 | Mountain급 컨텍스트 누출 | CRITICAL | Security Wall 차단 훅 + 키워드 스캐너 + 매 세션 검증 |
 | R3 | Phase 간 회귀 (선행 Phase 깨짐) | HIGH | E2E 회귀 테스트 + Phase 게이트 강제 |
 | R4 | 14주 일정 초과 | MED | Phase 7 Buffer 2주 + Phase별 부분 출시 가능 |
