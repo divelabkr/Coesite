@@ -77,6 +77,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run prisma:generate:ci
+      - run: pnpm -r build
       - run: TMPDIR=/tmp pnpm test
 
   e2e:
@@ -95,6 +96,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run prisma:generate:ci
+      - run: pnpm -r build
       - run: TMPDIR=/tmp pnpm run test:e2e
 
   security-regressions:
@@ -113,6 +115,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run prisma:generate:ci
+      - run: pnpm -r build
       - run: TMPDIR=/tmp pnpm run test:security
 
   dependency-audit:
