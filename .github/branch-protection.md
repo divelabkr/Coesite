@@ -18,6 +18,7 @@ Require these jobs before merge. The check names must match `.github/workflows/c
 - `dependency-audit`
 - `prisma-validate`
 - `constitution-drift`
+- `demo-readiness`
 
 ## Pull Request Review
 

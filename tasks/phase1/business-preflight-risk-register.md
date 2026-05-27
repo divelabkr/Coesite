@@ -42,6 +42,17 @@
 
 ---
 
+## 0.2. 2026-05-27 demo-readiness 업데이트
+
+- `scripts/demo-readiness.sh`와 `pnpm run gate:demo`를 추가했다.
+- `pnpm run gate`는 12단계로 확장되어 마지막에 security expert demo readiness를 실행한다.
+- GitHub Actions에 `demo-readiness` job을 추가했고, `.github/branch-protection.md` required checks에도 반영했다.
+- `docs/SECURITY-EXPERT-DEMO-PACK.md`를 추가해 실데이터 금지, 제출 항목, 데모 시나리오, NO-GO 조건을 고정했다.
+- 검증: `pnpm run gate:demo` PASS, `pnpm run gate` PASS, `SCAN_DIR=. bash scripts/scan-principles.sh` PASS.
+- 판정: 보안 전문가 controlled demo 제출은 GO 가능. 고객 실데이터 production 운영은 기존대로 P1 운영화와 Deep RedTeam 종료 전까지 NO-GO.
+
+---
+
 ## 1. P0 — 사업 전 차단
 
 ### P0-1. OraclePrevention 외부 관찰 oracle

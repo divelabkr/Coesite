@@ -19,7 +19,8 @@
     "prisma:reset": "dotenv -e packages/api/.env -- node -e \"process.env.DATABASE_URL=process.env.OWNER_DATABASE_URL; const r=require('node:child_process').spawnSync('pnpm',['exec','prisma','migrate','reset','--schema=prisma/schema.prisma','--force'],{stdio:'inherit',shell:process.platform==='win32'}); process.exit(r.status ?? 1)\"",
     "scan": "rg -n --hidden --glob '!node_modules' --glob '!dist' \"TODO|FIXME\" .",
     "lint": "pnpm --dir packages/types exec tsc --noEmit -p tsconfig.json && pnpm --dir packages/utils exec tsc --noEmit -p tsconfig.json && pnpm --dir packages/api exec tsc --noEmit -p tsconfig.json && pnpm --dir packages/sdk exec tsc --noEmit -p tsconfig.json",
-    "gate": "bash scripts/gate.sh"
+    "gate": "bash scripts/gate.sh",
+    "gate:demo": "bash scripts/demo-readiness.sh"
   },
   "devDependencies": {
     "@types/node": "22.19.19",

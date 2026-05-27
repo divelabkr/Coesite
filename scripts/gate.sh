@@ -10,38 +10,41 @@ echo "================================================"
 echo "  Coesite Full Gate"
 echo "================================================"
 
-echo "[1/11] Prisma generate..."
+echo "[1/12] Prisma generate..."
 pnpm run prisma:generate:ci
 
-echo "[2/11] TypeScript noEmit..."
+echo "[2/12] TypeScript noEmit..."
 pnpm run lint
 
-echo "[3/11] Build..."
+echo "[3/12] Build..."
 pnpm run build
 
-echo "[4/11] Focused security regressions..."
+echo "[4/12] Focused security regressions..."
 pnpm run test:security
 
-echo "[5/11] Unit/integration tests..."
+echo "[5/12] Unit/integration tests..."
 pnpm test
 
-echo "[6/11] E2E tests..."
+echo "[6/12] E2E tests..."
 pnpm run test:e2e
 
-echo "[7/11] P1~P10 scan..."
+echo "[7/12] P1~P10 scan..."
 bash scripts/scan-principles.sh
 
-echo "[8/11] Security Wall..."
+echo "[8/12] Security Wall..."
 bash scripts/security-wall.sh
 
-echo "[9/11] Secret scan..."
+echo "[9/12] Secret scan..."
 bash scripts/secret-scan.sh
 
-echo "[10/11] Dependency audit..."
+echo "[10/12] Dependency audit..."
 pnpm audit --audit-level moderate
 
-echo "[11/11] Prisma schema validation..."
+echo "[11/12] Prisma schema validation..."
 pnpm exec prisma validate --schema=prisma/schema.prisma
+
+echo "[12/12] Security expert demo readiness..."
+pnpm run gate:demo
 
 echo "================================================"
 echo "  Coesite Full Gate PASSED"

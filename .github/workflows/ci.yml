@@ -208,3 +208,31 @@ jobs:
         with:
           persist-credentials: false
       - run: bash scripts/security-wall.sh
+
+  demo-readiness:
+    runs-on: ubuntu-latest
+    needs:
+      - test
+      - e2e
+      - security-regressions
+      - dependency-audit
+      - prisma-validate
+      - scan-principles
+      - secret-scan
+      - constitution-drift
+      - security-wall
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run prisma:generate:ci
+      - run: pnpm -r build
+      - run: pnpm run gate:demo
