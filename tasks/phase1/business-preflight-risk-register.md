@@ -32,6 +32,16 @@
 
 ---
 
+## 0.1. 2026-05-27 업데이트
+
+- `docs/05-PRODUCT-DEFINITION.md`를 추가해 Coesite 5W1H, 고객 약속, 제외 범위, 사용자 흐름, 현재 판매 가능 상태를 canonical source로 고정했다.
+- `README.md`와 `docs/MVP-LAUNCH-CHECKLIST.md`가 제품 정의 문서를 참조하도록 동기화했다.
+- `.github/branch-protection.md`의 required checks를 현재 `.github/workflows/ci.yml` job 이름과 맞췄다.
+- `pnpm run gate`: PASS. security regressions 66, unit/integration 343, e2e 21, P1~P10, Security Wall, Secret scan, dependency audit, Prisma validate 모두 통과.
+- 현재 판정은 유지한다: controlled paid pilot은 조건부 가능, production launch는 P1 운영화와 장시간 RedTeam 종료 전까지 보류.
+
+---
+
 ## 1. P0 — 사업 전 차단
 
 ### P0-1. OraclePrevention 외부 관찰 oracle

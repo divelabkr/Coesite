@@ -14,6 +14,11 @@ Coesite MVP는 Runtime Seyer 기반 AI Trust Security Guard다. 고객 시스템
 - RedGate auditor proof lookup without raw context exposure
 - WORM-style trace/evidence reference
 
+## 프로그램 정의
+
+- Coesite 5W1H와 판매 가능 범위: [`docs/05-PRODUCT-DEFINITION.md`](docs/05-PRODUCT-DEFINITION.md)
+- Paid MVP 런칭 기준: [`docs/MVP-LAUNCH-CHECKLIST.md`](docs/MVP-LAUNCH-CHECKLIST.md)
+
 ## 유료 MVP 사용 흐름
 
 ```ts
